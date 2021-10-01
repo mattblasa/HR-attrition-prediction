@@ -6,7 +6,3 @@
 
 - <b>README.md:</b> Readme for reviewers of this project 
 - <b>churn.py</b> Churn Model using PySpark in Data Bricks
-
-## Background 
-
-## Data Governance 
