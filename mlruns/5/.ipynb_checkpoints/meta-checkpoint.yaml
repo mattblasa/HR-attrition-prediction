@@ -1,0 +1,4 @@
+artifact_location: file:///C:/Users/blasa/Documents/Data%20Science/Projects%20-%20Portfolio/HR-attrition%20prediction/mlruns/5
+experiment_id: '5'
+lifecycle_stage: active
+name: HR_Logistic Regression

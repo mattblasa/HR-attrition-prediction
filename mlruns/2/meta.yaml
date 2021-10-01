@@ -1,0 +1,4 @@
+artifact_location: file:///C:/Users/blasa/Documents/Data%20Science/Projects%20-%20Portfolio/HR-attrition%20prediction/mlruns/2
+experiment_id: '2'
+lifecycle_stage: active
+name: hr_churn

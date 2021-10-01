@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/blasa/Documents/Data%20Science/Projects%20-%20Portfolio/HR-attrition%20prediction/mlruns/0/bbcabbb19ac8453cbe3414c92bfbfc36/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+name: ''
+run_id: bbcabbb19ac8453cbe3414c92bfbfc36
+run_uuid: bbcabbb19ac8453cbe3414c92bfbfc36
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1632965522413
+status: 1
+tags: []
+user_id: blasa
