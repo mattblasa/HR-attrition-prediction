@@ -9,4 +9,4 @@
 
 ## Background 
 
-## Data Governance 
+## Data Governance and Data Management Notes
