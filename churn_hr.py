@@ -1,297 +1,532 @@
-# Databricks notebook source
-# MAGIC %sql 
-# MAGIC SELECT * 
-# MAGIC FROM telco_churn.employee_attrition
+#!/usr/bin/env python
+# coding: utf-8
 
-# COMMAND ----------
+# # IBM HR Analytics Employee Attrition & Performance
 
-churn = spark.sql('''
-SELECT *
-FROM telco_churn.employee_attrition
-''')
-cols = churn.columns
+# ## Table of Contents
 
-# COMMAND ----------
+# * [Introduction](#chapter1)
+#     * [Background](#Section_1_2)
+#     * [Data Dictionary](#section_1_1)
+#     * [Problem Statement](#Section_1_2)
+# * [Data Processing](#chapter2)
+#     * [Libraries](#Section_1_2)
+#     * [Experiment Tracking](#Section_1_2)
+#     * [Data Preperation](#Section_1_2)
+# * [Exploratory Data Analysis](#chapter2)
+#     * [EDA Insights](#chapter2)
+# * [Data Cleaning](#chapter2)
+#     * [Handling Missing Values](#chapter2)
+#     * [Outlier Detection](#chapter2)
+#     * [Feature Reduction](#chapter2)
+# * [Model Building](#chapter2)
+# * [Validation](#chapter2)
+# * [Conclusions](#chapter2)
+# * [Recommendations](#chapter2)
 
-churn.drop("Over18") \
-  .printSchema()
+# # Introduction
 
-# COMMAND ----------
+# ## Background
 
-from pyspark.sql import SparkSession
-from pyspark.conf import SparkConf
-from pyspark.sql.types import * 
-import pyspark.sql.functions as F
-from pyspark.sql.functions import col, asc,desc
-import matplotlib.pyplot as plt
-import numpy as np
-import seaborn as sns
-from pyspark.sql import SQLContext
-from pyspark.mllib.stat import Statistics
+# ## Data Dictionary
+# * AGE 	Numerical Value
+# * ATTRITION 	Employee leaving the company (0=no, 1=yes)
+# * BUSINESS TRAVEL 	(1=No Travel, 2=Travel Frequently, 3=Tavel Rarely)
+# * DAILY RATE 	Numerical Value - Salary Level
+# * DEPARTMENT 	(1=HR, 2=R&D, 3=Sales)
+# * DISTANCE FROM HOME 	Numerical Value - THE DISTANCE FROM WORK TO HOME
+# * EDUCATION 	Numerical Value
+# * EDUCATION FIELD 	(1=HR, 2=LIFE SCIENCES, 3=MARKETING, 4=MEDICAL SCIENCES, 5=OTHERS, 6= TEHCNICAL)
+# * EMPLOYEE COUNT 	Numerical Value
+# * EMPLOYEE NUMBER 	Numerical Value - EMPLOYEE ID
+# * ENVIROMENT SATISFACTION 	Numerical Value - SATISFACTION WITH THE ENVIROMENT
+# * GENDER 	(1=FEMALE, 2=MALE)
+# * HOURLY RATE 	Numerical Value - HOURLY SALARY
+# * JOB INVOLVEMENT 	Numerical Value - JOB INVOLVEMENT
+# * JOB LEVEL 	Numerical Value - LEVEL OF JOB
+# * JOB ROLE 	(1=HC REP, 2=HR, 3=LAB TECHNICIAN, 4=MANAGER, 5= MANAGING DIRECTOR, 6= REASEARCH DIRECTOR, 7= RESEARCH SCIENTIST, 8=SALES EXECUTIEVE, 9= SALES REPRESENTATIVE)
+# * JOB SATISFACTION 	Numerical Value - SATISFACTION WITH THE JOB
+# * MARITAL STATUS 	(1=DIVORCED, 2=MARRIED, 3=SINGLE)
+# * MONTHLY INCOME 	Numerical Value - MONTHLY SALARY
+# * MONTHY RATE 	Numerical Value - MONTHY RATE
+# * NUMCOMPANIES WORKED 	Numerical Value - NO. OF COMPANIES WORKED AT
+# * OVER 18 	(1=YES, 2=NO)
+# * OVERTIME 	(1=NO, 2=YES)
+# * PERCENT SALARY HIKE 	Numerical Value - PERCENTAGE INCREASE IN SALARY
+# * PERFORMANCE RATING 	Numerical Value - ERFORMANCE RATING
+# * RELATIONS SATISFACTION 	Numerical Value - RELATIONS SATISFACTION
+# * STANDARD HOURS 	Numerical Value - STANDARD HOURS
+# * STOCK OPTIONS LEVEL 	Numerical Value - STOCK OPTIONS
+# * TOTAL WORKING YEARS 	Numerical Value - TOTAL YEARS WORKED
+# * TRAINING TIMES LAST YEAR 	Numerical Value - HOURS SPENT TRAINING
+# * WORK LIFE BALANCE 	Numerical Value - TIME SPENT BEWTWEEN WORK AND OUTSIDE
+# * YEARS AT COMPANY 	Numerical Value - TOTAL NUMBER OF YEARS AT THE COMPNAY
+# * YEARS IN CURRENT ROLE 	Numerical Value -YEARS IN CURRENT ROLE
+# * YEARS SINCE LAST PROMOTION 	Numerical Value - LAST PROMOTION
+# * YEARS WITH CURRENT MANAGER 	Numerical Value - YEARS SPENT WITH CURRENT MANAGER
+
+# ## Problem Statement
+# 
+# Attrition is a problem that impacts all businesses, irrespective of geography, industry and size of the company. Employee attrition leads to significant costs for a business, including the cost of business disruption, hiring new staff and training new staff. As such, there is great business interest in understanding the drivers of, and minimizing staff attrition.
+# 
+# In this context, the use of classification models to predict if an employee is likely to quit could greatly increase the HR’s ability to intervene on time and remedy the situation to prevent attrition. While this model can be routinely run to identify employees who are most likely to quit, the key driver of success would be the human element of reaching out the employee, understanding the current situation of the employee and taking action to remedy controllable factors that can prevent attrition of the employee.
+# 
+# This data set presents an fictional employee survey from IBM, indicating if there is attrition or not. The data set contains approximately 1500 entries. Given the limited size of the data set, the model should only be expected to provide modest improvement in indentification of attrition vs a random allocation of probability of attrition.
+# 
+# While some level of attrition in a company is inevitable, minimizing it and being prepared for the cases that cannot be helped will significantly help improve the operations of most businesses. As a future development, with a sufficiently large data set, it would be used to run a segmentation on employees, to develop certain “at risk” categories of employees. This could generate new insights for the business on what drives attrition, insights that cannot be generated by merely informational interviews with employees.
+
+# ## Questions to Answer
+
+# In[ ]:
+
+
+
+
+
+# # Data Processing
+
+# ## Libraries
+
+# In[5]:
+
+
+# Import necessary libraries
 import pandas as pd
-from pyspark.sql.functions import udf
-from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler,StandardScaler
-from pyspark.ml import Pipeline
-from sklearn.metrics import confusion_matrix
+import numpy as np
+get_ipython().run_line_magic('matplotlib', 'inline')
+import matplotlib as mpl 
+import matplotlib.pyplot as plt
+import comet_ml
+import seaborn as sns
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+from statsmodels.stats.outliers_influence import variance_inflation_factor 
+from sklearn.model_selection import cross_val_predict, train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.feature_selection import RFE
+from sklearn.metrics import classification_report
+import warnings
+warnings.filterwarnings('ignore') # Ignore warning messages for readability
 
 
-# COMMAND ----------
+# In[6]:
 
-churn.printSchema()
-
-# COMMAND ----------
-
-def numeric_describe(df):
-  numeric_features = [t[0] for t in churn.dtypes if t[1] == 'int']
-  final = churn.select(numeric_features).describe().toPandas().transpose()
-  return final
-
-# COMMAND ----------
-
-def null_check(df):
-  '''
-    Check for nulls in a spark dataframe
-    
-    Args:
-        df (object): dataset rendered into a spark dataframe
-        
-    Returns:
-        Counts of nulls within a spark dataframe
-        
-        Example:
-            null_check(test_normal_idx, data_normal_dir, test_normal, imgs_normal)
-  '''
-  from pyspark.sql.functions import isnan, when, count, col
-  null = df.select([count(when(isnan(c), c)).alias(c) for c in df.columns]).toPandas().head()
-  return null
-
-# COMMAND ----------
-
-def hist(df):
-  '''
-  Returns 
-  '''
-  from matplotlib import cm
-  fig = plt.figure(figsize=(25,15)) ## Plot Size 
-  st = fig.suptitle("Distribution of Features", fontsize=50,
-                    verticalalignment='center') # Plot Main Title 
-
-  for col,num in zip(df.toPandas().describe().columns, range(1,11)):
-      ax = fig.add_subplot(3,4,num)
-      ax.hist(df.toPandas()[col])
-      plt.style.use('dark_background') 
-      plt.grid(False)
-      plt.xticks(rotation=45,fontsize=20)
-      plt.yticks(fontsize=15)
-      plt.title(col.upper(),fontsize=20)
-  plt.tight_layout()
-  st.set_y(0.95)
-  fig.subplots_adjust(top=0.85,hspace = 0.4)
-  plt.show()
-
-# COMMAND ----------
-
-def summary_stats(df):
-  '''
-   Returns statistics of the data frame: count, mean, std deviation, min, and max values for each column 
-    
-    Args:
-        df (object): dataset rendered into a spark dataframe
-        
-    Returns:
-        Counts of nulls within a spark dataframe
-        
-        Example:
-            null_check(test_normal_idx, data_normal_dir, test_normal, imgs_normal)
-  '''
-  numeric_features = [t[0] for t in df.dtypes if t[1] == 'int']
-  df.select(numeric_features).describe().toPandas().transpose()
-
-# COMMAND ----------
-
-# DBTITLE 1,Statistics
-numeric_features = [t[0] for t in churn.dtypes if t[1] == 'int']
-churn.select(numeric_features).describe().toPandas().transpose()
-
-# COMMAND ----------
-
-# DBTITLE 1,Attrition Counts
-churn.groupby("attrition").count().show()
-
-# COMMAND ----------
-
-# DBTITLE 1,Check for Nulls
-null_check(churn)
-
-# COMMAND ----------
-
-churn.toPandas()
-
-# COMMAND ----------
-
-categorical_columns = ['Attrition', 'BusinessTravel', 'Department', 'EducationField', 'Gender', 'JobRole', 'MaritalStatus','OverTime']
-numeric_cols = ['Age', 'DistanceFromHome', 'Education', 'EmployeeCount', 'EnvironmentSatisfaction', 'HourlyRate', 'JobInvolvement', 'JobLevel', 'JobSatisfaction', 
-                'MonthlyIncome', 'MonthlyRate', 'NumCompaniesWorked', 'PercentSalaryHike', 'PerformanceRating', 'RelationshipSatisfaction', "TotalWorkingYears", 
-                'WorkLifeBalance', 'YearsAtCompany', 'YearsInCurrentRole', 'YearsSinceLastPromotion', 'YearsWithCurrManager']
-
-# COMMAND ----------
 
 import pyspark
-from pyspark.ml import Pipeline
-from pyspark.ml.feature import StringIndexer, VectorAssembler
+from pyspark.sql import SparkSession, Window, DataFrame
+import pyspark.sql.functions as F
+import pyspark.sql.types as T
 
-from distutils.version import LooseVersion
 
-categoricalColumns = categorical_columns
-stages = [] # stages in Pipeline
-for categoricalCol in categoricalColumns:
-    # Category Indexing with StringIndexer
-    stringIndexer = StringIndexer(inputCol=categoricalCol, outputCol=categoricalCol + "Index")
-    # Use OneHotEncoder to convert categorical variables into binary SparseVectors
-    if LooseVersion(pyspark.__version__) < LooseVersion("3.0"):
-        from pyspark.ml.feature import OneHotEncoderEstimator
-        encoder = OneHotEncoderEstimator(inputCols=[stringIndexer.getOutputCol()], outputCols=[categoricalCol + "classVec"])
-    else:
-        from pyspark.ml.feature import OneHotEncoder
-        encoder = OneHotEncoder(inputCols=[stringIndexer.getOutputCol()], outputCols=[categoricalCol + "classVec"])
-    # Add stages.  These are not run here, but will run all at once later on.
-    stages += [stringIndexer, encoder]
+# ## Experiment Logging - Comet.ml 
 
-# COMMAND ----------
+# In[ ]:
 
-# Convert label into label indices using the StringIndexer
-label_stringIdx = StringIndexer(inputCol= "Gender", outputCol="label")
-stages += [label_stringIdx]
 
-# COMMAND ----------
+'''
+experiment = Experiment(
+    api_key="xCeYnrykwJF1pzF0Rfj8UEzR2",
+    project_name="hr_dataset",
+    workspace="mattblasa",
+)
+'''
 
-# Transform all features into a vector using VectorAssembler
-numericCols = numeric_cols
-assemblerInputs = [c + "classVec" for c in categoricalColumns] + numericCols
-assembler = VectorAssembler(inputCols=assemblerInputs, outputCol="features")
-stages += [assembler]
 
-# COMMAND ----------
+# ## Data Preparation
 
-from pyspark.ml.classification import LogisticRegression
+# In[7]:
+
+
+df = pd.read_csv('employee_attrition.csv')
+df.head()
+
+
+# In[8]:
+
+
+df.describe()
+
+
+# In[9]:
+
+
+df.columns
+
+
+# In[10]:
+
+
+df.info()
+
+
+# In[11]:
+
+
+categ = ['Attrition', 'BusinessTravel', 'Department', 'Gender', 'JobRole', 'MaritalStatus', 'Over18', 'OverTime', 'EducationField']
+df_categ = df[categ]
+
+
+# In[12]:
+
+
+df_categ
+
+
+# In[13]:
+
+
+#print unique cateogries in column 
+for col in df_categ:
+    print(df[col].unique())
+
+
+# In[14]:
+
+
+for col in df_categ:
+    print({col : df[col].unique()})
+
+
+# ### Convert Binary and Categorical Variables
+
+# In[15]:
+
+
+# Convert binary variables into yes = 1, no = 0 (ref 1)
+cols = ['Attrition', 'OverTime', 'Over18']
+df[cols] = df[cols].replace(to_replace = ['No', 'Yes'], value = [0, 1])
+
+
+# In[16]:
+
+
+#dummy variable based on category 
+df_test = pd.get_dummies(data=df, columns=['BusinessTravel', 'Department', 'Gender', 'JobRole', 'MaritalStatus', 'EducationField'])
+
+
+# In[17]:
+
+
+df_test = df_test.drop(columns = 'Over18')
+
+
+# In[18]:
+
+
+df_test
+
+
+# # Exploratory Data Analysis
+
+# In[19]:
+
+
+df_test.info()
+
+
+# In[20]:
+
+
+import missingno as ms
+ms.matrix(df);
+
+
+# In[45]:
+
+
+import seaborn as sns
+sns.set_palette(sns.color_palette("Set2", 8))
+plt.figure(figsize=(35,20))
+sns.heatmap(df.corr(),annot=True)
+plt.show()
+
+
+# In[48]:
+
+
+df.hist( figsize=(20, 15))
+
+
+# In[23]:
+
+
+df_test.columns
+
+
+# In[49]:
+
+
+# Plot split bar charts for dummy categorical variables by Churn
+df_cat = df_test[['BusinessTravel_Non-Travel', 'BusinessTravel_Travel_Frequently',
+       'BusinessTravel_Travel_Rarely', 'Department_Human Resources',
+       'Department_Research & Development', 'Department_Sales',
+       'Gender_Female', 'Gender_Male', 'JobRole_Healthcare Representative',
+       'JobRole_Human Resources', 'JobRole_Laboratory Technician',
+       'JobRole_Manager', 'JobRole_Manufacturing Director',
+       'JobRole_Research Director', 'JobRole_Research Scientist',
+       'JobRole_Sales Executive', 'JobRole_Sales Representative',
+       'MaritalStatus_Divorced', 'MaritalStatus_Married',
+       'MaritalStatus_Single','EducationField_Human Resources', 'EducationField_Life Sciences',
+       'EducationField_Marketing', 'EducationField_Medical',
+       'EducationField_Other', 'EducationField_Technical Degree', 'Attrition']]
+count=1
+plt.subplots(figsize=(20, 80))
+for i in df_cat.columns:
+    plt.subplot(20,3,count)
+    ax = sns.countplot(x=i, hue='Attrition', data = df_cat)
+    legend_labels, _= ax.get_legend_handles_labels()
+    ax.legend(legend_labels, ['Attrition No','Attrition Yes'])
+    ax.set_xticklabels(('0', '1'))
+    count+=1
+plt.show();
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# # Intial Model
+
+# In[25]:
+
+
+Xinit = df_test.drop('Attrition', axis = 1)
+y = df_test['Attrition'].values
+
+
+# In[26]:
+
+
+df_test.info()
+
+
+# In[27]:
+
+
+# Importing the libraries
+import missingno as msno
+
+# Visualize missing values as a matrix
+msno.matrix(df_test);
+
+
+# In[28]:
+
+
+df2 = df_test.select_dtypes(include=['uint8'])
+df2.columns
+
+
+# In[29]:
+
+
+print ("There are", Xinit.shape[1], "independent variables in the initial model.")
+
+
+# In[30]:
+
+
+msno.matrix(df_test)
+
+
+# In[31]:
+
+
+from sklearn.preprocessing import StandardScaler
+Xcinit = sm.add_constant(Xinit)
+logistic_regression = sm.Logit(y,Xcinit)
+fitted_model1 = logistic_regression.fit()
+fitted_model1.summary()
+
+
+# In[ ]:
+
+
+
+
+
+# In[32]:
+
+
+clf = LogisticRegression()
+clf.fit(Xinit, y.astype(int))
+y_clf = clf.predict(Xinit)
+print(classification_report(y, y_clf))
+
+
+# In[33]:
+
+
+# Use recursive feature elimination to choose most important features (ref 6)
+model = LogisticRegression()
+rfe = RFE(model, 10) 
+rfe = rfe.fit(Xcinit, y)
+print(rfe.support_)
+print('\n')
+print(rfe.ranking_)
+f = rfe.get_support(1) # the most important features
+Xfin = Xinit[Xinit.columns[f]] # final features`
+
+
+# In[34]:
+
+
+# Look for evidence of Variance Inflation Factors (ref 7) causing multicollinearity
   
-partialPipeline = Pipeline().setStages(stages)
-pipelineModel = partialPipeline.fit(churn)
-preppedDataDF = pipelineModel.transform(churn)
+# VIF dataframe 
+vif_data = pd.DataFrame() 
+vif_data["feature"] = Xfin.columns 
+  
+# calculating VIF for each feature 
+vif_data["VIF"] = [variance_inflation_factor(Xfin.values, i) 
+                          for i in range(len(Xfin.columns))] 
+  
+print(vif_data)
 
-# COMMAND ----------
 
-# Fit model to prepped data
-lrModel = LogisticRegression().fit(preppedDataDF)
+# In[35]:
 
-# ROC for training data
-display(lrModel, preppedDataDF, "ROC")
 
-# COMMAND ----------
+# Re-run the model
+Xcfin = sm.add_constant(Xfin)
+logistic_regression = sm.Logit(y,Xcfin)
+fitted_model2 = logistic_regression.fit()
+fitted_model2.summary()
 
-display(lrModel, preppedDataDF)
 
-# COMMAND ----------
+# In[36]:
 
-# Keep relevant columns
-selectedcols = ["label", "features"] + cols
-dataset = preppedDataDF.select(selectedcols)
-display(dataset)
 
-# COMMAND ----------
+X_train, X_test, y_train, y_test = train_test_split(Xfin, y.astype(float), test_size=0.33, random_state=101)
 
-# MAGIC %md
-# MAGIC # Preprocess Data
 
-# COMMAND ----------
+# In[37]:
 
-### Randomly split data into training and test sets. set seed for reproducibility
-(trainingData, testData) = dataset.randomSplit([0.7, 0.3], seed=100)
-print(trainingData.count())
-print(testData.count())
 
-# COMMAND ----------
+Xcfin = sm.add_constant(X_train)
+logistic_regression = sm.Logit(y_train,Xcfin)
+fitted_model2 = logistic_regression.fit()
+fitted_model2.summary()
 
-from pyspark.ml.classification import LogisticRegression
 
-# Create initial LogisticRegression model
-lr = LogisticRegression(labelCol="label", featuresCol="features", maxIter=10)
+# In[38]:
 
-# Train model with Training Data
-lrModel = lr.fit(trainingData)
 
-# COMMAND ----------
+# verification
+clf = LogisticRegression()
+clf.fit(X_train, y_train.astype(int))
+y_clf = clf.predict(X_test)
+print(classification_report(y_test, y_clf))
 
-# Make predictions on test data using the transform() method.
-# LogisticRegression.transform() will only use the 'features' column.
-predictions = lrModel.transform(testData)
 
-# COMMAND ----------
+# In[39]:
 
-# View model's predictions and probabilities of each prediction class
-# You can select any columns in the above schema to view as well
-selected = predictions.select("label", "prediction", "probability", "age", "overtime")
-display(selected)
 
-# COMMAND ----------
+# View prediction (initial)
+clf = LogisticRegression()
+clf.fit(Xinit, y.astype(int))
+y_clf = clf.predict(Xinit)
+print(classification_report(y, y_clf))
 
-from pyspark.ml.evaluation import BinaryClassificationEvaluator
 
-# Evaluate model
-evaluator = BinaryClassificationEvaluator()
-evaluator.evaluate(predictions)
+# In[40]:
 
-# COMMAND ----------
 
-evaluator.getMetricName()
-
-# COMMAND ----------
-
+import numpy as np
+from sklearn.linear_model import LogisticRegression
 from pyspark.ml.tuning import ParamGridBuilder, CrossValidator
+from sklearn.metrics import accuracy_score
 
-# Create ParamGrid for Cross Validation
-paramGrid = (ParamGridBuilder()
-             .addGrid(lr.regParam, [0.01, 0.5, 2.0])
-             .addGrid(lr.elasticNetParam, [0.0, 0.5, 1.0]) #lasso, ridge, and elastic net 
-             .addGrid(lr.maxIter, [1, 5, 10])
-             .build())
+import mlflow
+import mlflow.sklearn
 
-# COMMAND ----------
+client = mlflow.tracking.MlflowClient()
 
-# Create 5-fold CrossValidator
-cv = CrossValidator(estimator=lr, estimatorParamMaps=paramGrid, evaluator=evaluator, numFolds=5)
+try: 
+    experiment = client.create_experiment(name = "HR_Logistic Regression")
+except:
+    print('Experiment Already Exists. Please check folder.')
 
-# Run cross validations
-cvModel = cv.fit(trainingData)
-# this will likely take a fair amount of time because of the amount of models that we're creating and testing
 
-# COMMAND ----------
+# In[41]:
 
-predictions = cvModel.transform(testData)
 
-# COMMAND ----------
+with mlflow.start_run(experiment_id='5', run_name='HR_Logistic Regression') as run:
+    # Get the run and experiment id 
+    run_id = run.info.run_uuid
+    experiment_id = run.info.experiment_id
+    
+    #train, test = train_test_split(data)
+    X_train, X_test, y_train, y_test = train_test_split(Xfin, y.astype(float), test_size=0.33, random_state=101)
+    
+    #Logistic Regression 
+    lr = LogisticRegression()
+    lr.fit(X_test, y_test)
+    
+    
+    
+#Metrics 
+    #Precision
+    precision = 22
 
-# cvModel uses the best model found from the Cross Validation
-# Evaluate best model
-evaluator.evaluate(predictions)
+    #Recall 
+    recall = 22
 
-# COMMAND ----------
+    #Accuracy
+    acc = 22
+    #acc = accuracy_score(y_true, y_pred)    #accuracy
+    score = lr.score(X_test, y_test)        #score 
+    
+    #Confusion Matrix, save confusion matrix to ML runs 
+    clf = LogisticRegression()
+    clf.fit(X_train, y_train.astype(int))           # logistic Regression Fit
+    y_clf = clf.predict(X_test)                    # adad 
+    print(classification_report(y_test, y_clf))    # sdsd
+        
+    #log Metrics 
+        #mlflow.log_metric('Name', output) 
+    mlflow.log_metric("Precision", precision)
+    mlflow.log_metric("Recall", recall)
+    mlflow.log_metric("Accuracy", acc)
+    mlflow.log_metric("score", score)
+   
+    
+     #Log Model
+    mlflow.sklearn.log_model(lr, "model")
+    
+    
+    #Print Metrics 
+    print()
+    print("Precision: %s" % precision)
+    print("Recall: %s" % recall)
+    print("Accuracy: %s" % acc)
+    print("Score: %s" % score)
+    print("Model saved in run %s" % mlflow.active_run().info.run_uuid)
+    
 
-print('Model Intercept: ', cvModel.bestModel.intercept)
 
-# COMMAND ----------
+# In[42]:
 
-weights = cvModel.bestModel.coefficients
-weights = [(float(w),) for w in weights]  # convert numpy type to float, and to tuple
-weightsDF = sqlContext.createDataFrame(weights, ["Feature Weight"])
-display(weightsDF)
 
-# COMMAND ----------
+classification_report
 
-# View best model's predictions and probabilities of each prediction class
-selected = predictions.select("label", "prediction", "probability", "age", "overtime")
-display(selected)
 
-# COMMAND ----------
+# In[ ]:
+
+
 
 
