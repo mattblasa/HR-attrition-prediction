@@ -11,9 +11,16 @@
 
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Nibh tellus molestie nunc non blandit massa enim nec. Dictum varius duis at consectetur lorem donec massa.
 
+# Data 
+
+Data consists of 20 features. 
+
+Data dictionary with descriptions can be found in file xxx 
+
 # Business Scenario
 
 orem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Nibh tellus molestie nunc non blandit massa enim nec. Dictum varius duis at consectetur lorem donec massa.
+
 
 # Use Cases / Problem Statement
 
@@ -22,5 +29,13 @@ The following use cases have been identified:
  - As as a HR manager, I would like to ideintify if work life balance and years in current role affect wether or not an employee will leave, so that we can improve employee retention
  - As a HR executive, I would like to predictive tool to predict wether or not employees will leave, so that HR can 
  - As a HR executive, I would like to find out which departments have the greatest attrition, so that we can focus our retention efforts. 
- 
+
 ## Data Governance and Data Management Notes
+
+## Tools Used 
+
+### Ingestion 
+
+### Modeling and Transformation 
+
+###  
